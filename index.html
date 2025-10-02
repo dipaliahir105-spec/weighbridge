@@ -148,4 +148,81 @@
         function showToast(message, isError = false) { const toast = document.getElementById('toast'); toast.textContent = message; toast.className = `toast show ${isError ? 'bg-red-600' : 'bg-green-600'}`; setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000); }
         function numberToWords(num) { if (num === 0) return 'Zero'; const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']; const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']; const inWords = (n) => { let str = ''; if (n > 99) { str += a[Math.floor(n / 100)] + ' Hundred '; n %= 100; } if (n > 19) { str += b[Math.floor(n / 10)] + ' ' + a[n % 10]; } else { str += a[n]; } return str.trim(); }; let result = ''; const crore = Math.floor(num / 10000000); num %= 10000000; const lakh = Math.floor(num / 100000); num %= 100000; const thousand = Math.floor(num / 1000); num %= 1000; if (crore > 0) result += inWords(crore) + ' Crore '; if (lakh > 0) result += inWords(lakh) + ' Lakh '; if (thousand > 0) result += inWords(thousand) + ' Thousand '; if (num > 0) result += inWords(num); return result.trim().replace(/\s+/g, ' '); }
         
- 
+        // --- MODIFIED PREVIEW MAPPING & FUNCTIONS ---
+        const previewMapping = { 
+            'company-name': { selector: '.preview-company-name' }, 
+            'weighbridge-name': { selector: '.preview-weighbridge-name' }, 
+            'serial-no': { selector: '.preview-serial-no' }, 
+            'customer-name': { selector: '.preview-customer-name' }, 
+            'site': { selector: '.preview-site' }, 
+            'vehicle-number': { selector: '.preview-vehicle-number' }, 
+            'item-name': { selector: '.preview-item-name' }, 
+            'royalty-pass-no': { selector: '.preview-royalty-pass-no' }, 
+            'driver-name': { selector: '.preview-driver-name' }, 
+            'charges': { selector: '.preview-charges', format: val => `₹${parseFloat(val || 0).toFixed(2)}` }, 
+            'gross-weight': { selector: '.preview-gross-weight', format: val => `${val || 0}` }, 
+            'tare-weight': { selector: '.preview-tare-weight', format: val => `${val || 0}` }, 
+        };
+        
+        function updateDateTimePreview() {
+            const inDate = document.getElementById('in-date').value;
+            const inTime = document.getElementById('in-time').value;
+            const outDate = document.getElementById('out-date').value;
+            const outTime = document.getElementById('out-time').value;
+            let inDateTimeStr = '-';
+            if (inDate) { inDateTimeStr = new Date(inDate).toLocaleDateString('en-GB'); if (inTime) inDateTimeStr += ` ${new Date(`1970-01-01T${inTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`; }
+            let outDateTimeStr = '-';
+            if (outDate) { outDateTimeStr = new Date(outDate).toLocaleDateString('en-GB'); if (outTime) outDateTimeStr += ` ${new Date(`1970-01-01T${outTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`; }
+            document.querySelectorAll('.preview-in-datetime').forEach(el => el.textContent = inDateTimeStr);
+            document.querySelectorAll('.preview-out-datetime').forEach(el => el.textContent = outDateTimeStr);
+        }
+
+        function calculateNetWeight() {
+            const gross = parseFloat(document.getElementById('gross-weight').value) || 0;
+            const tare = parseFloat(document.getElementById('tare-weight').value) || 0;
+            const net = Math.abs(gross - tare);
+            document.querySelectorAll('.preview-net-weight').forEach(el => el.textContent = `${net}`);
+            document.querySelectorAll('.preview-net-weight-words').forEach(el => el.textContent = net > 0 ? `${numberToWords(net)} Kilograms Only` : '-');
+        }
+
+        function updatePreviewFromForm() {
+            formInputs.forEach(input => {
+                const target = previewMapping[input.id];
+                if (!target) return;
+                const elements = document.querySelectorAll(target.selector);
+                const formattedValue = typeof target.format === 'function' ? target.format(input.value) : input.value;
+                elements.forEach(element => {
+                    element.textContent = formattedValue || '-';
+                    if (input.id === 'vehicle-number') { element.classList.add('uppercase'); }
+                });
+            });
+            updateDateTimePreview();
+            calculateNetWeight();
+        }
+
+        // --- Core App Logic (No Changes) ---
+        function setFormMode(mode, slipId = null) { if (mode === 'edit') { editingSlipIdInput.value = slipId; saveUpdateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Update Slip`; saveUpdateBtn.classList.replace('bg-blue-600', 'bg-green-600'); saveUpdateBtn.classList.replace('hover:bg-blue-700', 'hover:bg-green-700'); formModeIndicator.classList.remove('hidden'); } else { editingSlipIdInput.value = ''; saveUpdateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save & Print Slip`; saveUpdateBtn.classList.replace('bg-green-600', 'bg-blue-600'); saveUpdateBtn.classList.replace('hover:bg-green-700', 'hover:bg-blue-700'); formModeIndicator.classList.add('hidden'); } }
+        function populateForm(data) { formInputs.forEach(input => { if (data[input.id] !== undefined) { input.value = data[input.id]; } }); updatePreviewFromForm(); setFormMode('edit', data.id); }
+        function clearFormForNewSlip() { form.reset(); document.getElementById('company-name').value = "ASHAPURA ENTERPRISE"; document.getElementById('weighbridge-name').value = "Main Yard, Rajkot"; document.getElementById('serial-no').value = Math.floor(10000 + Math.random() * 90000); const now = new Date(); document.getElementById('in-date').value = now.toISOString().split('T')[0]; document.getElementById('in-time').value = now.toTimeString().split(' ')[0].substring(0, 5); updatePreviewFromForm(); setFormMode('new'); }
+        async function saveSlip() { if (!slipsCollectionRef) { showToast("Not logged in.", true); return false; } const vehicleNumber = document.getElementById('vehicle-number').value; if (!vehicleNumber.trim()) { showToast("Vehicle Number is required to save.", true); return false; } const slipData = {}; formInputs.forEach(input => slipData[input.id] = input.value); slipData.createdAt = firebase.firestore.FieldValue.serverTimestamp(); try { await slipsCollectionRef.add(slipData); showToast("Slip saved successfully!"); return true; } catch (error) { console.error("Error adding document: ", error); showToast("Error saving slip.", true); return false; } }
+        async function updateSlip(slipId) { const slipData = {}; formInputs.forEach(input => slipData[input.id] = input.value); slipData.updatedAt = firebase.firestore.FieldValue.serverTimestamp(); try { await slipsCollectionRef.doc(slipId).update(slipData); showToast("Slip updated successfully!"); clearFormForNewSlip(); return true; } catch (error) { console.error("Error updating document: ", error); showToast("Error updating slip.", true); return false; } }
+        function fetchAndRenderSlips() { if (!slipsCollectionRef) return; slipsCollectionRef.orderBy("createdAt", "desc").onSnapshot((querySnapshot) => { const listElement = document.getElementById('saved-slips-list'); listElement.innerHTML = ''; allSlipsData = []; if (querySnapshot.empty) { listElement.innerHTML = '<p class="text-center text-slate-500 p-4">You have no saved slips yet.</p>'; return; } querySnapshot.forEach((doc) => { const slip = { id: doc.id, ...doc.data() }; allSlipsData.push(slip); const slipCard = `<div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-center p-3 bg-slate-50 rounded-lg border"><div class="font-semibold text-slate-800">#${slip['serial-no'] || 'N/A'}</div><div class="text-slate-600 col-span-1">${slip['customer-name'] || 'No Customer'}</div><div class="text-slate-600 uppercase col-span-1">${slip['vehicle-number'] || 'No Vehicle'}</div><div class="flex items-center gap-2 justify-end col-span-1 md:col-span-2"><button data-id="${slip.id}" class="load-btn text-sm bg-green-100 text-green-800 font-semibold px-3 py-1 rounded-md hover:bg-green-200">Load</button><button data-id="${slip.id}" class="view-print-btn text-sm bg-blue-100 text-blue-800 font-semibold px-3 py-1 rounded-md hover:bg-blue-200">View/Print</button><button data-id="${slip.id}" class="delete-btn text-sm bg-red-100 text-red-800 font-semibold px-3 py-1 rounded-md hover:bg-red-200">Delete</button></div></div>`; listElement.insertAdjacentHTML('beforeend', slipCard); }); }, (error) => { console.error("Error fetching slips: ", error); document.getElementById('slips-message').textContent = 'Error fetching data. Check Firebase rules.'; }); }
+        function showDeleteConfirmation(slipId) { deleteModal.classList.add('show'); confirmDeleteBtn.dataset.slipId = slipId; }
+        function hideDeleteConfirmation() { deleteModal.classList.remove('show'); confirmDeleteBtn.dataset.slipId = ''; }
+        auth.onAuthStateChanged(user => { if (user) { authContainer.classList.add('hidden'); appContainer.classList.remove('hidden'); userEmailSpan.textContent = user.email; slipsCollectionRef = db.collection('users').doc(user.uid).collection('slips'); fetchAndRenderSlips(); clearFormForNewSlip(); } else { authContainer.classList.remove('hidden'); appContainer.classList.add('hidden'); document.getElementById('saved-slips-list').innerHTML = '<p id="slips-message" class="text-center text-slate-500 p-4">Login to see your saved slips.</p>'; } });
+        document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); loginForm.classList.add('hidden'); signupForm.classList.remove('hidden'); }); document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); signupForm.classList.add('hidden'); loginForm.classList.remove('hidden'); });
+        signupForm.addEventListener('submit', (e) => { e.preventDefault(); const email = document.getElementById('signup-email').value; const password = document.getElementById('signup-password').value; auth.createUserWithEmailAndPassword(email, password).then(userCredential => showToast("Account created successfully!")).catch(error => showToast(error.message, true)); });
+        loginForm.addEventListener('submit', (e) => { e.preventDefault(); const email = document.getElementById('login-email').value; const password = document.getElementById('login-password').value; auth.signInWithEmailAndPassword(email, password).catch(error => showToast(error.message, true)); });
+        document.getElementById('logout-btn').addEventListener('click', () => { auth.signOut(); });
+        saveUpdateBtn.addEventListener('click', async () => { const slipId = editingSlipIdInput.value; let success = false; if (slipId) { success = await updateSlip(slipId); } else { success = await saveSlip(); } if (success) { setTimeout(() => window.print(), 500); } });
+        document.getElementById('new-slip-btn').addEventListener('click', clearFormForNewSlip);
+        document.getElementById('saved-slips-list').addEventListener('click', (e) => { const targetButton = e.target.closest('button'); if (!targetButton) return; const slipId = targetButton.dataset.id; const slipData = allSlipsData.find(s => s.id === slipId); if (!slipData) return; if (targetButton.classList.contains('load-btn')) { populateForm(slipData); window.scrollTo({ top: 0, behavior: 'smooth' }); } else if (targetButton.classList.contains('view-print-btn')) { populateForm(slipData); setTimeout(() => window.print(), 100); } else if (targetButton.classList.contains('delete-btn')) { showDeleteConfirmation(slipId); } });
+        cancelDeleteBtn.addEventListener('click', hideDeleteConfirmation);
+        confirmDeleteBtn.addEventListener('click', async () => { const slipId = confirmDeleteBtn.dataset.slipId; if (slipId && slipsCollectionRef) { try { await slipsCollectionRef.doc(slipId).delete(); showToast("Slip deleted successfully."); if (editingSlipIdInput.value === slipId) { clearFormForNewSlip(); } } catch (error) { console.error("Error deleting document: ", error); showToast("Error deleting slip.", true); } finally { hideDeleteConfirmation(); } } });
+        form.addEventListener('input', updatePreviewFromForm);
+        document.addEventListener('DOMContentLoaded', () => { setFormMode('new'); });
+    </script>
+</body>
+</html>
+
+
