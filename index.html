@@ -163,7 +163,22 @@
         document.getElementById('logout-btn').addEventListener('click', () => { auth.signOut(); });
         saveUpdateBtn.addEventListener('click', async () => { const slipId = editingSlipIdInput.value; let success = false; if (slipId) { success = await updateSlip(slipId); } else { success = await saveSlip(); } if (success) { setTimeout(() => window.print(), 500); } });
         document.getElementById('new-slip-btn').addEventListener('click', clearFormForNewSlip);
-        document.getElementById('saved-slips-list').addEventListener('click', (e) => { const targetButton = e.target.closest('button'); if (!targetButton) return; const slipId = targetButton.dataset.id; const slipData = allSlipsData.find(s => s.id === slipId); if (!slipData) return. if (targetButton.classList.contains('load-btn')) { populateForm(slipData); window.scrollTo({ top: 0, behavior: 'smooth' }); } else if (targetButton.classList.contains('view-print-btn')) { populateForm(slipData); setTimeout(() => window.print(), 100); } else if (targetButton.classList.contains('delete-btn')) { showDeleteConfirmation(slipId); } });
+        document.getElementById('saved-slips-list').addEventListener('click', (e) => {
+            const targetButton = e.target.closest('button');
+            if (!targetButton) return;
+            const slipId = targetButton.dataset.id;
+            const slipData = allSlipsData.find(s => s.id === slipId);
+            if (!slipData) return;
+            if (targetButton.classList.contains('load-btn')) {
+                populateForm(slipData);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else if (targetButton.classList.contains('view-print-btn')) {
+                populateForm(slipData);
+                setTimeout(() => window.print(), 100);
+            } else if (targetButton.classList.contains('delete-btn')) {
+                showDeleteConfirmation(slipId);
+            }
+        });
         cancelDeleteBtn.addEventListener('click', hideDeleteConfirmation);
         confirmDeleteBtn.addEventListener('click', async () => { const slipId = confirmDeleteBtn.dataset.slipId; if (slipId && slipsCollectionRef) { try { await slipsCollectionRef.doc(slipId).delete(); showToast("Slip deleted successfully."); if (editingSlipIdInput.value === slipId) { clearFormForNewSlip(); } } catch (error) { console.error("Error deleting document: ", error); showToast("Error deleting slip.", true); } finally { hideDeleteConfirmation(); } } });
         form.addEventListener('input', updatePreviewFromForm);
